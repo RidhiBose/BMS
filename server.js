@@ -3,31 +3,25 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
-const { Server } = require('socket.io');
-const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv'); // Add this line to import dotenv
 
+// Load environment variables
 dotenv.config();
+
+const authMiddleware = require('./middleware/authMiddleware'); // Ensure this path is correct
 
 // Initialize App
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = require('socket.io')(server, { cors: { origin: '*' } });
 
 app.use(express.json());
 app.use(cors());
 
 // Connect to MongoDB
-// mongoose.connect(process.env.MONGO_URI, {
-//     useNewUrlParser: true,
-//     useUnifiedTopology: true,
-//     serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-// })
-// .then(() => console.log('✅ MongoDB Connected'))
-// .catch(err => {
-//     console.error('❌ MongoDB Connection Error:', err);
-//     process.exit(1); // Exit process if connection fails
-// });
-const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/bms';
+const mongoURI = "mongodb+srv://rishiagrawal2609:bnr9371272448@cluster0.anc8t.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
@@ -49,24 +43,6 @@ const BatterySchema = new mongoose.Schema({
 });
 const Battery = mongoose.model('Battery', BatterySchema);
 
-// Authentication Middleware
-// const jwt = require('jsonwebtoken');
-// const bcrypt = require('bcryptjs');
-// const authMiddleware = (req, res, next) => {
-//     const token = req.header('Authorization');
-//     if (!token) return res.status(401).send('Access Denied');
-//     try {
-//         const verified = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
-//         req.user = verified;
-//         next();
-//     } catch (err) {
-//         res.status(400).send('Invalid Token');
-//     }
-// };
-const authMiddleware = require('./middleware/authMiddleware');
-app.use('/battery/status', authMiddleware, require('./routes/battery'));
-
-
 // Register Route
 app.post('/auth/register', async (req, res) => {
     try {
@@ -76,7 +52,7 @@ app.post('/auth/register', async (req, res) => {
         await newUser.save();
         res.status(201).send('User Registered');
     } catch (error) {
-        res.status(400).send('Error Registering User');
+        res.status(400).send(`Error Registering User ${error.message}`);
     }
 });
 
